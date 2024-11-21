@@ -7,7 +7,6 @@ ARG LUAJIT_LIB=/usr/lib
 
 ARG NGINX_VER=release-1.27.4
 ARG OPENSSL_VER=openssl-3.1.7+quic
-ARG MODSEC_VER=v3.0.13
 
 ARG DTR_VER=1.25.1
 ARG RCP_VER=1.27.1
@@ -18,7 +17,6 @@ ARG HMNM_VER=v0.37
 ARG NJS_VER=0.8.7
 ARG NDK_VER=v0.3.3
 ARG LNM_VER=v0.10.27
-ARG MODSECNGX_VER=v1.0.3
 ARG LRC_VER=v0.1.30
 ARG LRL_VER=v0.15
 ARG NHG2M_VER=3.4
@@ -34,16 +32,6 @@ RUN apk upgrade --no-cache -a && \
     libatomic_ops-dev zlib-dev luajit-dev pcre2-dev linux-headers yajl-dev libxml2-dev libxslt-dev curl-dev lmdb-dev libfuzzy2-dev lua5.1-dev lmdb-dev geoip-dev libmaxminddb-dev
 # Openssl
 RUN git clone https://github.com/quictls/openssl --branch "$OPENSSL_VER" /usr/local/openssl
-# modsecurity
-RUN git clone --recursive https://github.com/owasp-modsecurity/ModSecurity --branch "$MODSEC_VER" /src/ModSecurity && \
-    sed -i "s|SecRuleEngine .*|SecRuleEngine On|g" /src/ModSecurity/modsecurity.conf-recommended && \
-    sed -i "s|^SecAudit|#SecAudit|g" /src/ModSecurity/modsecurity.conf-recommended && \
-    sed -i "s|unicode.mapping|/usr/local/nginx/conf/conf.d/include/unicode.mapping|g" /src/ModSecurity/modsecurity.conf-recommended && \
-    cd /src/ModSecurity && \
-    /src/ModSecurity/build.sh && \
-    /src/ModSecurity/configure --with-pcre2 --with-lmdb && \
-    make -j "$(nproc)" && \
-    make -j "$(nproc)" install
 # Nginx
 RUN git clone --recursive https://github.com/freenginx/nginx --branch "$NGINX_VER" /src/nginx && \
     wget -q https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/nginx__dynamic_tls_records_"$DTR_VER"%2B.patch -O /src/nginx/1.patch && \
@@ -60,7 +48,6 @@ RUN git clone --recursive https://github.com/freenginx/nginx --branch "$NGINX_VE
     git clone --recursive https://github.com/nginx/njs --branch "$NJS_VER" /src/njs && \
     git clone --recursive https://github.com/vision5/ngx_devel_kit --branch "$NDK_VER" /src/ngx_devel_kit && \
     git clone --recursive https://github.com/openresty/lua-nginx-module --branch "$LNM_VER" /src/lua-nginx-module && \
-    git clone --recursive https://github.com/SpiderLabs/ModSecurity-nginx --branch "$MODSECNGX_VER" /src/ModSecurity-nginx && \
     git clone --recursive https://github.com/openresty/lua-resty-core --branch "$LRC_VER" /src/lua-resty-core && \
     git clone --recursive https://github.com/openresty/lua-resty-lrucache --branch "$LRL_VER" /src/lua-resty-lrucache && \
     git clone --recursive https://github.com/leev/ngx_http_geoip2_module --branch "$NHG2M_VER" /src/ngx_http_geoip2_module && \
@@ -102,7 +89,6 @@ RUN cd /src/nginx && \
     --add-module=/src/njs/nginx \
     --add-module=/src/ngx_devel_kit \
     --add-module=/src/lua-nginx-module \
-    --add-module=/src/ModSecurity-nginx \
     --add-module=/src/ngx_http_geoip2_module \
     --add-module=/src/nginx-ntlm-module
 # Build & Install
@@ -131,21 +117,14 @@ RUN cp -v /usr/local/openssl/apps/openssl.cnf /usr/local/openssl/.openssl/openss
 # strip files
 RUN strip -s /usr/local/nginx/sbin/nginx && \
     strip -s /usr/local/openssl/.openssl/bin/openssl && \
-    strip -s /usr/local/openssl/.openssl/lib/ossl-modules/oqsprovider.so && \
-    strip -s /usr/local/modsecurity/lib/libmodsecurity.so.3
+    strip -s /usr/local/openssl/.openssl/lib/ossl-modules/oqsprovider.so
 RUN find /usr/local/nginx -exec file {} \; | grep "not stripped" || true && \
-    find /usr/local/openssl/.openssl -exec file {} \; | grep "not stripped" || true && \
-    file /usr/local/modsecurity/lib/libmodsecurity.so.3 && \
-    file /src/ModSecurity/unicode.mapping && \
-    file /src/ModSecurity/modsecurity.conf-recommended
+    find /usr/local/openssl/.openssl -exec file {} \; | grep "not stripped" || true
 
 FROM alpine:3.20.3
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 COPY --from=build /usr/local/nginx                               /usr/local/nginx
 COPY --from=build /usr/local/openssl/.openssl                    /usr/local/openssl/.openssl
-COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/modsecurity/lib/libmodsecurity.so.3
-COPY --from=build /src/ModSecurity/unicode.mapping               /usr/local/nginx/conf/conf.d/include/unicode.mapping
-COPY --from=build /src/ModSecurity/modsecurity.conf-recommended  /usr/local/nginx/conf/conf.d/include/modsecurity.conf.example
 RUN apk upgrade --no-cache -a && \
     apk add --no-cache ca-certificates tzdata tini zlib luajit pcre2 libstdc++ yajl libxml2 libxslt libcurl lmdb libfuzzy2 lua5.1-libs geoip libmaxminddb-libs && \
     ln -s /usr/local/nginx/sbin/nginx /usr/local/bin/nginx && \
