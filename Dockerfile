@@ -118,7 +118,7 @@ RUN cp -v /usr/local/openssl/apps/openssl.cnf /usr/local/openssl/.openssl/openss
 RUN strip -s /usr/local/nginx/sbin/nginx && \
     strip -s /usr/local/openssl/.openssl/bin/openssl && \
     strip -s /usr/local/openssl/.openssl/lib/ossl-modules/oqsprovider.so
-RUN find /usr/local/nginx -exec file {} \; | grep "not stripped" || true && \
+RUN find /usr/local/nginx -exec file {} \; | grep "not stripped" || true; \
     find /usr/local/openssl/.openssl -exec file {} \; | grep "not stripped" || true
 
 FROM alpine:3.20.3
