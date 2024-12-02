@@ -46,10 +46,12 @@ RUN git clone --recursive https://github.com/owasp-modsecurity/ModSecurity --bra
     make -j "$(nproc)" install
 # Nginx
 RUN git clone --recursive https://github.com/freenginx/nginx --branch "$NGINX_VER" /src/nginx && \
+    cd /src/nginx && \
     wget -q https://raw.githubusercontent.com/nginx-modules/ngx_http_tls_dyn_size/master/nginx__dynamic_tls_records_"$DTR_VER"%2B.patch -O /src/nginx/1.patch && \
     wget -q https://raw.githubusercontent.com/openresty/openresty/master/patches/nginx-"$RCP_VER"-resolver_conf_parsing.patch -O /src/nginx/2.patch && \
     sed -i "s|freenginx|NPMplus|g" /src/nginx/src/core/nginx.h && \
-    cd /src/nginx && \
+    sed -i "/<hr><center>/d" /src/nginx/src/http/ngx_http_special_response.c && \
+    git diff && \
     patch -p1 </src/nginx/1.patch && \
     patch -p1 </src/nginx/2.patch && \
     rm /src/nginx/*.patch && \
