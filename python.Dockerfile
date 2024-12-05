@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:labs
-FROM python:3.13.0-alpine3.20
+FROM python:3.13.1-alpine3.20
 ENV PYTHONUNBUFFERED=1
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 COPY --from=zoeyvid/nginx-quic:latest /usr/local/nginx                               /usr/local/nginx
