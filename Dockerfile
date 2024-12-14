@@ -30,11 +30,11 @@ ARG OQSPROVIDER_VER=0.7.0
 WORKDIR /src
 # Requirements
 RUN apk upgrade --no-cache -a && \
-    apk add --no-cache ca-certificates build-base patch cmake git libtool autoconf automake perl bash \
+    apk add --no-cache ca-certificates build-base cmake git libtool autoconf automake perl bash \
     libatomic_ops-dev zlib-dev luajit-dev pcre2-dev linux-headers yajl-dev libxml2-dev libxslt-dev curl-dev lmdb-dev libfuzzy2-dev lua5.1-dev lmdb-dev geoip-dev libmaxminddb-dev
 # Openssl
 RUN git clone https://github.com/quictls/openssl --branch "$OPENSSL_VER" /usr/local/openssl
-# modsecurity
+# ModSecurity
 RUN git clone --recursive https://github.com/owasp-modsecurity/ModSecurity --branch "$MODSEC_VER" /src/ModSecurity && \
     sed -i "s|SecRuleEngine .*|SecRuleEngine On|g" /src/ModSecurity/modsecurity.conf-recommended && \
     sed -i "s|^SecAudit|#SecAudit|g" /src/ModSecurity/modsecurity.conf-recommended && \
@@ -52,8 +52,8 @@ RUN git clone --recursive https://github.com/freenginx/nginx --branch "$NGINX_VE
     sed -i "s|freenginx|NPMplus|g" /src/nginx/src/core/nginx.h && \
     sed -i "/<hr><center>/d" /src/nginx/src/http/ngx_http_special_response.c && \
     git diff && \
-    patch -p1 </src/nginx/1.patch && \
-    patch -p1 </src/nginx/2.patch && \
+    git apply /src/nginx/1.patch && \
+    git apply /src/nginx/2.patch && \
     rm /src/nginx/*.patch && \
 # modules
     git clone --recursive https://github.com/google/ngx_brotli --branch "$NB_VER" /src/ngx_brotli && \
@@ -62,11 +62,16 @@ RUN git clone --recursive https://github.com/freenginx/nginx --branch "$NGINX_VE
     git clone --recursive https://github.com/nginx/njs --branch "$NJS_VER" /src/njs && \
     git clone --recursive https://github.com/vision5/ngx_devel_kit --branch "$NDK_VER" /src/ngx_devel_kit && \
     git clone --recursive https://github.com/openresty/lua-nginx-module --branch "$LNM_VER" /src/lua-nginx-module && \
-    git clone --recursive https://github.com/SpiderLabs/ModSecurity-nginx --branch "$MODSECNGX_VER" /src/ModSecurity-nginx && \
     git clone --recursive https://github.com/openresty/lua-resty-core --branch "$LRC_VER" /src/lua-resty-core && \
     git clone --recursive https://github.com/openresty/lua-resty-lrucache --branch "$LRL_VER" /src/lua-resty-lrucache && \
     git clone --recursive https://github.com/leev/ngx_http_geoip2_module --branch "$NHG2M_VER" /src/ngx_http_geoip2_module && \
-    git clone --recursive https://github.com/gabihodoroaga/nginx-ntlm-module --branch "$NNTLM_VER" /src/nginx-ntlm-module
+    git clone --recursive https://github.com/gabihodoroaga/nginx-ntlm-module --branch "$NNTLM_VER" /src/nginx-ntlm-module && \
+# patch ModSecurity-nginx
+    git clone --recursive https://github.com/SpiderLabs/ModSecurity-nginx --branch "$MODSECNGX_VER" /src/ModSecurity-nginx && \
+    cd /src/ModSecurity-nginx && \
+    wget -q https://patch-diff.githubusercontent.com/raw/owasp-modsecurity/ModSecurity-nginx/pull/320.patch -O /src/ModSecurity-nginx/1.patch && \
+    git apply /src/ModSecurity-nginx/1.patch && \
+    rm /src/ModSecurity-nginx/*.patch
 # Configure
 RUN cd /src/nginx && \
     /src/nginx/auto/configure \
