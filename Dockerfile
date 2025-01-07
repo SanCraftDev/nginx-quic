@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:labs
-FROM alpine:3.21.0 AS build
+FROM alpine:3.21.1 AS build
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 ARG LUAJIT_INC=/usr/include/luajit-2.1
@@ -146,7 +146,7 @@ RUN find /usr/local/nginx -exec file {} \; | grep "not stripped" || true && \
     file /src/ModSecurity/unicode.mapping && \
     file /src/ModSecurity/modsecurity.conf-recommended
 
-FROM alpine:3.21.0
+FROM alpine:3.21.1
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 COPY --from=build /usr/local/nginx                               /usr/local/nginx
 COPY --from=build /usr/local/openssl/.openssl                    /usr/local/openssl/.openssl
