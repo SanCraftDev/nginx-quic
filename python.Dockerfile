@@ -9,9 +9,9 @@ RUN apk upgrade --no-cache -a && \
 FROM python:3.13.1-alpine3.21
 ENV PYTHONUNBUFFERED=1
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
-COPY --from=zoeyvid/nginx-quic:latest /usr/local/nginx                               /usr/local/nginx
-COPY --from=zoeyvid/nginx-quic:latest /usr/local/openssl/.openssl                    /usr/local/openssl/.openssl
-COPY --from=zoeyvid/nginx-quic:latest /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/modsecurity/lib/libmodsecurity.so.3
+COPY --from=zoeyvid/nginx-quic:latest /usr/local/lib              /usr/local/lib
+COPY --from=zoeyvid/nginx-quic:latest /usr/local/nginx            /usr/local/nginx
+COPY --from=zoeyvid/nginx-quic:latest /usr/local/openssl/.openssl /usr/local/openssl/.openssl
 RUN apk upgrade --no-cache -a && \
     apk add --no-cache ca-certificates tzdata tini zlib luajit pcre2 libstdc++ yajl libxml2 libxslt libcurl lmdb libfuzzy2 lua5.1-libs geoip libmaxminddb-libs && \
     ln -s /usr/local/nginx/sbin/nginx /usr/local/bin/nginx && \
