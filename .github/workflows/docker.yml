@@ -9,12 +9,14 @@ on:
     paths:
       - Dockerfile
       - requirements.txt
+      - attachment.patch
       - python.Dockerfile
       - .github/workflows/docker.yml
   pull_request:
     paths:
       - Dockerfile
       - requirements.txt
+      - attachment.patch
       - python.Dockerfile
       - .github/workflows/docker.yml
   workflow_dispatch:
