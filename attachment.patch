@@ -1,0 +1,100 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.4)
+ project(ngen)
+
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-terminate")
++set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -s")
+
+ set(CMAKE_CXX_STANDARD 11)
+
+@@ -10,5 +11,3 @@ include_directories(core/include/attachments)
+
+ add_subdirectory(core)
+ add_subdirectory(attachments)
+-add_subdirectory(docker)
+-add_subdirectory(nodes)
+diff --git a/attachments/nginx/nginx_attachment_util/CMakeLists.txt b/attachments/nginx/nginx_attachment_util/CMakeLists.txt
+index 32014ee..5a8e158 100644
+--- a/attachments/nginx/nginx_attachment_util/CMakeLists.txt
++++ b/attachments/nginx/nginx_attachment_util/CMakeLists.txt
+@@ -4,4 +4,3 @@ add_library(osrc_nginx_attachment_util SHARED nginx_attachment_util.cc)
+ target_link_libraries(osrc_nginx_attachment_util http_configuration)
+
+ install(TARGETS osrc_nginx_attachment_util DESTINATION lib)
+-install(TARGETS osrc_nginx_attachment_util DESTINATION nginx_attachment/lib)
+diff --git a/attachments/nginx/ngx_module/CMakeLists.txt b/attachments/nginx/ngx_module/CMakeLists.txt
+index 8c8ae92..8126867 100644
+--- a/attachments/nginx/ngx_module/CMakeLists.txt
++++ b/attachments/nginx/ngx_module/CMakeLists.txt
+@@ -1,32 +1,3 @@
+-MACRO(CREATE_INCLUDE_LIST result)
+-    file(READ ${CMAKE_INSTALL_PREFIX}/nginx-src/include_paths.mk relative_includes)
+-    STRING(REGEX REPLACE "\n" ";" relative_includes "${relative_includes}")
+-    set(inclist "")
+-    FOREACH(include ${relative_includes})
+-        if(NOT include MATCHES "^/")
+-            set(inclist ${inclist} "${CMAKE_INSTALL_PREFIX}/nginx-src/${include}")
+-        else()
+-            set(inclist ${inclist} "${include}")
+-        endif()
+-    ENDFOREACH()
+-    set(${result} ${inclist})
+-ENDMACRO()
+-
+-MACRO(READ_COMPILE_FLAGS result)
+-    file(READ ${CMAKE_INSTALL_PREFIX}/nginx-src/cc_flags.mk CC_FLAGS)
+-    string(REGEX REPLACE "\n" "" CC_FLAGS "${CC_FLAGS}")
+-    set(flag_list "")
+-    FOREACH(flag ${CC_FLAGS})
+-        if (flag MATCHES "-fstack-clash-protection" OR flag MATCHES "-fcf-protection" OR flag MATCHES "-Wno-cast-function-type")
+-            continue()
+-        endif()
+-
+-        set(flag_list ${flag_list} "${flag}")
+-    ENDFOREACH()
+-    separate_arguments(flag_list)
+-    set(${result} ${flag_list})
+-ENDMACRO()
+-
+ add_library(
+        ngx_module
+        SHARED
+@@ -39,11 +10,15 @@ add_dependencies(ngx_module osrc_shmem_ipc osrc_nginx_attachment_util osrc_compr
+
+ target_link_libraries(ngx_module osrc_shmem_ipc osrc_nginx_attachment_util osrc_compression_utils)
+
+-CREATE_INCLUDE_LIST(NGX_INCLUDES)
+-READ_COMPILE_FLAGS(CC_FLAG_LIST)
++file(GLOB_RECURSE NGINX_DIRS LIST_DIRECTORIES true "/src/nginx/*")
++set(NGINX_INCLUDE_DIRS "/src/nginx")
++foreach(dir ${NGINX_DIRS})
++    if(IS_DIRECTORY ${dir})
++        list(APPEND NGINX_INCLUDE_DIRS ${dir})
++    endif()
++endforeach()
++target_include_directories(ngx_module PRIVATE ${NGINX_INCLUDE_DIRS})
+
+-target_include_directories(ngx_module PRIVATE ${NGX_INCLUDES})
+ target_compile_options(ngx_module PRIVATE ${CC_FLAG_LIST})
+
+ install(TARGETS ngx_module DESTINATION lib)
+-install(TARGETS ngx_module DESTINATION nginx_attachment/lib)
+diff --git a/core/compression/CMakeLists.txt b/core/compression/CMakeLists.txt
+index 2331156..9696a27 100644
+--- a/core/compression/CMakeLists.txt
++++ b/core/compression/CMakeLists.txt
+@@ -3,4 +3,3 @@ add_definitions(-DZLIB_CONST)
+ add_library(osrc_compression_utils SHARED compression_utils.cc)
+
+ install(TARGETS osrc_compression_utils DESTINATION lib)
+-install(TARGETS osrc_compression_utils DESTINATION nginx_attachment/lib)
+diff --git a/core/shmem_ipc/CMakeLists.txt b/core/shmem_ipc/CMakeLists.txt
+index 84d85fa..085a8f8 100644
+--- a/core/shmem_ipc/CMakeLists.txt
++++ b/core/shmem_ipc/CMakeLists.txt
+@@ -3,4 +3,3 @@ add_library(osrc_shmem_ipc SHARED shmem_ipc.c shared_ring_queue.c)
+ target_link_libraries(osrc_shmem_ipc -lrt)
+
+ install(TARGETS osrc_shmem_ipc DESTINATION lib)
+-install(TARGETS osrc_shmem_ipc DESTINATION nginx_attachment/lib)
