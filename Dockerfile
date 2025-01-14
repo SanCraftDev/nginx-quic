@@ -112,6 +112,12 @@ RUN cd /src/nginx && \
     --add-module=/src/ModSecurity-nginx \
     --add-module=/src/ngx_http_geoip2_module \
     --add-module=/src/nginx-ntlm-module
+RUN git clone https://github.com/openappsec/attachment /src/attachment
+COPY attachment.patch /src/attachment/attachment.patch
+RUN cd /src/attachment && \
+    patch -p1 </src/attachment/attachment.patch && \
+    cmake /src/attachment && \
+    make install
 # Build & Install
 RUN cd /src/nginx && \
     make -j "$(nproc)" && \
@@ -148,9 +154,10 @@ RUN find /usr/local/nginx -exec file {} \; | grep "not stripped" || true && \
 
 FROM alpine:3.21.2
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+COPY --from=build /usr/local/lib                                 /usr/local/lib
 COPY --from=build /usr/local/nginx                               /usr/local/nginx
 COPY --from=build /usr/local/openssl/.openssl                    /usr/local/openssl/.openssl
-COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/modsecurity/lib/libmodsecurity.so.3
+COPY --from=build /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/lib/libmodsecurity.so.3
 COPY --from=build /src/ModSecurity/unicode.mapping               /usr/local/nginx/conf/conf.d/include/unicode.mapping
 COPY --from=build /src/ModSecurity/modsecurity.conf-recommended  /usr/local/nginx/conf/conf.d/include/modsecurity.conf.example
 RUN apk upgrade --no-cache -a && \
